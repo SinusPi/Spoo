@@ -154,25 +154,13 @@ function SpooAddon.SpooFrame_Update()
 				local mt = getmetatable(d.parent)
 				local desc = mt and mt.__desc
 			end
-
-			if d.data and type(d.data)=="table" and d.data.tostring then
-				local ok,txt
-				if type(d.data.tostring)=="function" then
-					ok,txt = pcall(d.data.tostring,d.data)
-				else
-					ok,txt = true,d.data.tostring
-				end
-				if not ok then txt="ERR: "..txt end
-				s = s .. " \"".. tostring(txt) .."\""
-			elseif d.data and type(d.data)=="table" and d.data.__name then
-				s = s .. " \"".. tostring(d.data.__name) .."\""
-			end
-
-			--[[
-			local istable = d.data and type(d.data)=="table"
-			local mt = istable and getmetatable(d.data)
+			
+			local is_table = type(d.data)=="table"
+			local mt = is_table and getmetatable(d.data)
 			local mtp = d.parent and getmetatable(d.parent)
-			local data_tostring = istable and (d.data.tostring or d.data.__name or (mt and mt.__name)) or (mtp and mtp.__itemname)
+			local data_tostring
+			if is_table then data_tostring = d.data.tostring or d.data.__name or (mt and mt.__name)
+			else data_tostring = mtp and mtp.__itemname end
 			if data_tostring then
 				local ok,txt
 				if type(data_tostring)=="function" then
@@ -188,7 +176,6 @@ function SpooAddon.SpooFrame_Update()
 			elseif SpooAddon.currentMagicDescription and SpooAddon.currentMagicDescription[d.index] and d.indent==0 then
 				s = s .. " ("..SpooAddon.currentMagicDescription[d.index] ..")"
 			end
-			--]]
 
 			linef.text.text:SetText(s)
 
@@ -388,11 +375,11 @@ end
 
 
 function SpooAddon.SpooFrame_ScrollWheel(self,delta,scrollbar)
-	scrollBar = scrollBar or _G[self:GetName() .. "ScrollBar"];
+	scrollBar = scrollBar or SpooFrameScrollBar
 	if ( delta > 0 ) then
-		scrollBar:SetValue(scrollBar:GetValue() - (scrollBar:GetHeight() / 20));
+		scrollBar:SetValue(scrollBar:GetValue() - (scrollBar:GetHeight() / 20), true)
 	else
-		scrollBar:SetValue(scrollBar:GetValue() + (scrollBar:GetHeight() / 20));
+		scrollBar:SetValue(scrollBar:GetValue() + (scrollBar:GetHeight() / 20), true)
 	end
 end
 
@@ -402,7 +389,7 @@ for i=1,NUMLINES do
 	tinsert(sf.lineframes,linef)
 
 	if i>1 then
-		linef:SetPoint("TOPLEFT",sf['line'..(i-1)],"BOTTOMLEFT")
+		linef:SetPoint("TOPLEFT",sf.lineframes[i-1],"BOTTOMLEFT")
 	else
 		linef:SetPoint("TOPLEFT",10,-10)
 	end
@@ -411,13 +398,11 @@ for i=1,NUMLINES do
 	linef.expandi.index=true
 	linef.exec:SetScript("OnClick",SpooAddon.SpooFrame_Line_OnExec)
 	linef.i = i
-
-	sf['line'..i] = linef
 end
 sf.scroll:SetScript("OnMouseWheel",SpooAddon.SpooFrame_ScrollWheel)
 --SpooFrameScrollFrameScrollBar:SetScript("OnMouseWheel",SpooFrame_ScrollWheel)
-sf.scroll:SetScript("OnShow",function() SpooAddon.SpooFrame_Update(sf) end)
-sf.scroll:SetScript("OnVerticalScroll",function() FauxScrollFrame_OnVerticalScroll(self, offset, 3, SpooAddon.SpooFrame_Update) end)
+sf.scroll:SetScript("OnShow",SpooAddon.SpooFrame_Update)
+sf.scroll:SetScript("OnVerticalScroll",function(self,offset) FauxScrollFrame_OnVerticalScroll(self, offset, 3, SpooAddon.SpooFrame_Update) end)
 
 
 SpooAddon.SpooFrame_Update(sf)
