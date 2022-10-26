@@ -1,0 +1,17 @@
+## Interface: 90100, 20501, 11302
+## Title: Spooooo
+## Notes: Shows dumps of nested data structures
+## Author: Sinus, somewhat basing on Tekkub Stoutwrithe's Spew
+## Version: 1.0.0.0
+## X-Category: Development Tools
+
+## LoadManagers: AddonLoader
+## X-LoadOn-Slash: /spoo
+
+BackdropTemplate_Stub.xml
+
+LibStub.lua
+
+SpooFrame.xml
+Spoo.lua
+qq.lua
