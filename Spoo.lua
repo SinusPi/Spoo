@@ -30,16 +30,23 @@ You can combine these features, too.
 
 --]]
 
-local TABLEITEMS, TABLEDEPTH = 5, 1
-local tostring, TableToString = tostring
+local name,SpooAddon = ...
 
-local NUMLINES=50
+-- Add more magic table field descriptions here. These are used if you /spoo FunctionName(...) .
+SpooAddon.MagicDescriptions = {
+	GetItemInfo= {__totable=true, 'itemName', 'itemLink', 'itemRarity', 'itemLevel', 'itemMinLevel', 'itemType', 'itemSubType', 'stackable', 'inventoryType', 'itemIcon', 'sellPrice', 'itemClassID', 'itemSubClassID', 'bindType', 'expacID', 'itemSetID', 'isCraftingReagent'}
+}
 
 local sf = SpooFrame
+sf.lineframes = {}
+sf.lines = {}
+local lines=sf.lines
 
-local SpooAddon = {}
+local TABLEITEMS, TABLEDEPTH = 5, 1
+local tostring=tostring
+local TableToString
 
-local lines={}
+local NUMLINES=50
 
 sf:SetSize(1000,NUMLINES*13+23)
 if not BackdropTemplate then
@@ -106,16 +113,16 @@ end
 local __CLASS = {}
 setmetatable(__CLASS,{__mode="k"})
 
-function SpooFrame_Update()
-	local offset = FauxScrollFrame_GetOffset(SpooFrameScrollFrame)
+function SpooAddon.SpooFrame_Update()
+	local offset = FauxScrollFrame_GetOffset(sf.scroll)
 
 	for i=1,NUMLINES do
-		local line=sf['line'..i]
+		local linef=sf.lineframes[i]
 		if offset+i<=#lines then
 			local s
 			local d = lines[offset+i]
 
-			line.d = d
+			linef.d = d
 			
 			s = FormatType(d.data)
 			if d.index then
@@ -148,6 +155,20 @@ function SpooFrame_Update()
 				local desc = mt and mt.__desc
 			end
 
+			if d.data and type(d.data)=="table" and d.data.tostring then
+				local ok,txt
+				if type(d.data.tostring)=="function" then
+					ok,txt = pcall(d.data.tostring,d.data)
+				else
+					ok,txt = true,d.data.tostring
+				end
+				if not ok then txt="ERR: "..txt end
+				s = s .. " \"".. tostring(txt) .."\""
+			elseif d.data and type(d.data)=="table" and d.data.__name then
+				s = s .. " \"".. tostring(d.data.__name) .."\""
+			end
+
+			--[[
 			local istable = d.data and type(d.data)=="table"
 			local mt = istable and getmetatable(d.data)
 			local mtp = d.parent and getmetatable(d.parent)
@@ -167,47 +188,49 @@ function SpooFrame_Update()
 			elseif SpooAddon.currentMagicDescription and SpooAddon.currentMagicDescription[d.index] and d.indent==0 then
 				s = s .. " ("..SpooAddon.currentMagicDescription[d.index] ..")"
 			end
+			--]]
 
-			line.text.text:SetText(s)
+			linef.text.text:SetText(s)
 
 			if s and SpooAddon.find and s:find(SpooAddon.find) then print(s) end
 
 			if d.expand then
-				line.expand:SetAlpha(1)
-				line.expand:SetEnabled(true)
-				if d.expanded then line.expand:SetText("-") else line.expand:SetText("+") end
+				linef.expand:SetAlpha(1)
+				linef.expand:SetEnabled(true)
+				if d.expanded then linef.expand:SetText("-") else linef.expand:SetText("+") end
 			elseif d.func or (d.meta and typev=="function") then
-				line.expand:SetAlpha(1)
-				line.expand:SetEnabled(true)
-				line.expand:SetText(":")
+				linef.expand:SetAlpha(1)
+				linef.expand:SetEnabled(true)
+				linef.expand:SetText(":")
 			else 
-				line.expand:SetAlpha(0)
-				line.expand:SetEnabled(false)
+				linef.expand:SetAlpha(0)
+				linef.expand:SetEnabled(false)
 			end
+			linef.exec:SetText("c")
 
 			if type(d.index)=="table" then
-				line.expandi:SetAlpha(1)
-				line.expandi:SetEnabled(true)
-				if d.expandedi then line.expandi:SetText("-") else line.expandi:SetText("+") end
+				linef.expandi:SetAlpha(1)
+				linef.expandi:SetEnabled(true)
+				if d.expandedi then linef.expandi:SetText("-") else linef.expandi:SetText("+") end
 			else 
-				line.expandi:SetAlpha(0)
-				line.expandi:SetEnabled(false)
+				linef.expandi:SetAlpha(0)
+				linef.expandi:SetEnabled(false)
 			end
 
-			line.expand:GetSize() -- LEGION TEMP FIX
-			line.expandi:GetSize() -- LEGION TEMP FIX
+			linef.expand:GetSize() -- LEGION TEMP FIX
+			linef.expandi:GetSize() -- LEGION TEMP FIX
 
-			line.exec.object = d.data
+			linef.exec.object = d.data
 
-			line.indent:SetWidth(d.indent*15+1)
-			line.linei = offset+i
-			line:Show()
+			linef.indent:SetWidth(d.indent*15+1)
+			linef.linei = offset+i
+			linef:Show()
 		else
-			line:Hide()
+			linef:Hide()
 		end
 	end
 	--FauxScrollFrame_Update(SpooFrameScrollFrame, #lines, NUMLINES, (#lines-NUMLINES)/20)
-	FauxScrollFrame_Update(SpooFrameScrollFrame, #lines, NUMLINES, 3.1)
+	FauxScrollFrame_Update(sf.scroll, #lines, NUMLINES, 3.1)
 end
 
 --[[
@@ -300,17 +323,15 @@ function Spoo(insertpoint,indent,data,...)
 		insertpoint=insertpoint+1
 	end
 
-	SPlines=lines
-
 	if select("#",...)>0 then
 		Spoo(insertpoint,indent,...)
 	else
 		sf:Show()
-		SpooFrame_Update()
+		SpooAddon.SpooFrame_Update()
 	end
 end
 
-function SpooFrame_Line_OnClick(but)
+function SpooAddon.SpooFrame_Line_OnClick(but)
 	local linei=but:GetParent().linei
 	local data = lines[linei]
 	local func = data[but.index and "index" or "data"]
@@ -327,17 +348,17 @@ function SpooFrame_Line_OnClick(but)
 	else
 		while lines[linei+1] and lines[linei+1].indent>data.indent do tremove(lines,linei+1) end
 		data[expindexi]=nil
-		SpooFrame_Update()
+		SpooAddon.SpooFrame_Update()
 	end
 end
 
-function SpooFrame_Line_OnExec(but)
+function SpooAddon.SpooFrame_Line_OnExec(but)
 	local object = but.object
-	SPOBJ = object
-	ChatFrame1:AddMessage("|cffeeeeddSaved into |cffffffffSPOBJ|r.|r")
+	SPCOPY = object
+	ChatFrame1:AddMessage("|cffeeeeddSaved into |cffffffffSPCOPY|r.|r")
 end
 
-function Spoo_DebugFrame(frame)
+function SpooAddon:DebugFrame(frame)
 	local ret = {}
 	tinsert(ret,("Frame: %s (%s)"):format(frame:GetName() or "<unnamed>",tostring(frame)))
 	local parent=frame:GetParent()
@@ -366,7 +387,7 @@ end
 
 
 
-local function SpooFrame_ScrollWheel(self,delta,scrollbar)
+function SpooAddon.SpooFrame_ScrollWheel(self,delta,scrollbar)
 	scrollBar = scrollBar or _G[self:GetName() .. "ScrollBar"];
 	if ( delta > 0 ) then
 		scrollBar:SetValue(scrollBar:GetValue() - (scrollBar:GetHeight() / 20));
@@ -376,25 +397,30 @@ local function SpooFrame_ScrollWheel(self,delta,scrollbar)
 end
 
 for i=1,NUMLINES do
-	local line = CreateFrame("FRAME","SpooFrame_Line"..i,sf,"SpooLine")
+	local linef = CreateFrame("FRAME","",sf,"SpooLine")
+
+	tinsert(sf.lineframes,linef)
 
 	if i>1 then
-		line:SetPoint("TOPLEFT",sf['line'..(i-1)],"BOTTOMLEFT")
+		linef:SetPoint("TOPLEFT",sf['line'..(i-1)],"BOTTOMLEFT")
 	else
-		line:SetPoint("TOPLEFT",10,-10)
+		linef:SetPoint("TOPLEFT",10,-10)
 	end
-	line.expand:SetScript("OnClick",SpooFrame_Line_OnClick)
-	line.expandi:SetScript("OnClick",SpooFrame_Line_OnClick)
-	line.expandi.index=true
-	line.exec:SetScript("OnClick",SpooFrame_Line_OnExec)
-	line.i = i
+	linef.expand:SetScript("OnClick",SpooAddon.SpooFrame_Line_OnClick)
+	linef.expandi:SetScript("OnClick",SpooAddon.SpooFrame_Line_OnClick)
+	linef.expandi.index=true
+	linef.exec:SetScript("OnClick",SpooAddon.SpooFrame_Line_OnExec)
+	linef.i = i
 
-	sf['line'..i] = line
+	sf['line'..i] = linef
 end
-SpooFrameScrollFrame:SetScript("OnMouseWheel",SpooFrame_ScrollWheel)
+sf.scroll:SetScript("OnMouseWheel",SpooAddon.SpooFrame_ScrollWheel)
 --SpooFrameScrollFrameScrollBar:SetScript("OnMouseWheel",SpooFrame_ScrollWheel)
+sf.scroll:SetScript("OnShow",function() SpooAddon.SpooFrame_Update(sf) end)
+sf.scroll:SetScript("OnVerticalScroll",function() FauxScrollFrame_OnVerticalScroll(self, offset, 3, SpooAddon.SpooFrame_Update) end)
 
-SpooFrame_Update()
+
+SpooAddon.SpooFrame_Update(sf)
 
 
 
@@ -423,7 +449,7 @@ function SlashCmdList.SPOO(text)
 		end			
 		local frame = FrameStackTooltip:SetFrameStack(FrameStackTooltip.showHidden,FrameStackTooltip.showRegions,0)
 		print(frame)
-		Spoo({frame,unpack(Spoo_DebugFrame(frame))})
+		Spoo({frame,unpack(SpooAddon:DebugFrame(frame))})
 	elseif input:match("find (.*)") then
 		local find = input:match("find (.*)")
 		SpooAddon.find = find
@@ -511,10 +537,6 @@ local function SetupAutoCompletion()
 end
 
 
-SpooAddon.MagicDescriptions = {
-	GetItemInfo= {__totable=true, 'itemName', 'itemLink', 'itemRarity', 'itemLevel', 'itemMinLevel', 'itemType', 'itemSubType', 'stackable', 'inventoryType', 'itemIcon', 'sellPrice', 'itemClassID', 'itemSubClassID', 'bindType', 'expacID', 'itemSetID', 'isCraftingReagent'}
-}
-
 
 local F=CreateFrame("FRAME","SpooAutocompleteFrame")
 F:RegisterEvent("ADDON_LOADED")
@@ -522,152 +544,3 @@ F:SetScript("OnEvent",function(self,event)
 	SetupAutoCompletion()
 	self:SetScript("OnEvent",nil)
 end)
-
-
-
-
-do return end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----------- Tekkub's leftover code follows - just in case it's needed again
-
---[[
-
-sf:SetMaxLines(1000)
-cf:SetFontObject(ChatFontSmall)
-cf:SetJustifyH("LEFT")
-cf:SetFading(false)
-cf:EnableMouseWheel(true)
-cf:SetScript("OnHide", cf.ScrollToBottom)
-cf:SetScript("OnMouseWheel", function(frame, delta)
-	if delta > 0 then
-		if IsShiftKeyDown() then frame:ScrollToTop()
-		else for i=1,4 do frame:ScrollUp() end end
-	elseif delta < 0 then
-		if IsShiftKeyDown() then frame:ScrollToBottom()
-		else for i=1,4 do frame:ScrollDown() end end
-	end
-end)
-
-local b = LibStub("tekKonfig-Button").new(cf, "TOPRIGHT", cf, "BOTTOMRIGHT", -155, -3)
-b:SetText("Clear")
-b:SetScript("OnClick", function() cf:Clear() end)
-
-local function Print(text, frame)
-	if not text or text:len() == 0 then text = " " end
-	(frame or cf):AddMessage(text)
-end
-
-
-local colors = {boolean = "|cffff9100", number = "|cffff7fff", ["nil"] = "|cffff7f7f"}
-local noescape = {["\a"] = "a", ["\b"] = "b", ["\f"] = "f", ["\n"] = "n", ["\r"] = "r", ["\t"] = "t", ["\v"] = "v"}
-local function escape(c) return "\\".. (noescape[c] or c:byte()) end
-local function pretty_tostring(value, depth)
-	depth = depth or 0
-	local t = type(value)
-	if t == "string" then return '|cff00ff00"'..value:gsub("|", "||"):gsub("([\001-\031\128-\255])", escape)..'"|r'
-	elseif t == "table" then
-		if depth > TABLEDEPTH then return "|cff9f9f9f{...}|r"
-		elseif type(rawget(value, 0)) == "userdata" and type(value.GetObjectType) == "function" then return "|cffffea00<"..value:GetObjectType()..":"..(value:GetName() or "(anon)")..">|r"
-		else return "|cff9f9f9f"..string.join(", ", TableToString(value, nil, nil, depth+1)).."|r" end
-	elseif colors[t] then return colors[t]..tostring(value).."|r"
-	else return tostring(value) end
-end
-
-
-function TableToString(t, lasti, items, depth)
-	items = items or 0
-	depth = depth or 0
-	if items > TABLEITEMS then return "...|cff9f9f9f}|r" end
-	local i,v = next(t, lasti)
-	if items == 0 then
-		if next(t, i) then return "|cff9f9f9f{|cff7fd5ff"..tostring(i).."|r = "..pretty_tostring(v, depth), TableToString(t, i, 1, depth)
-		elseif v == nil then return "|cff9f9f9f{}|r"
-		else return "|cff9f9f9f{|cff7fd5ff"..tostring(i).."|r = "..pretty_tostring(v, depth).."|cff9f9f9f}|r" end
-	end
-	if next(t, i) then return "|cff7fd5ff"..tostring(i).."|r = "..pretty_tostring(v, depth), TableToString(t, i, items+1, depth) end
-	return "|cff7fd5ff"..tostring(i).."|r = "..pretty_tostring(v, depth).."|cff9f9f9f}|r"
-end
-
-
-
-
-local blist, input = {GetDisabledFontObject = true, GetHighlightFontObject = true, GetNormalFontObject = true}
---local function downcasesort(a,b) return a and b and tostring(a):lower() < tostring(b):lower() end
---local function pcallhelper(success, ...) if success then return string.join(", ", ArgsToString(...)) end end
-function Spew(input, a1, ...)
-	if select('#', ...) == 0 then
-		if type(a1) == "table" then
-			if type(rawget(a1, 0)) == "userdata" and type(a1.GetObjectType) == "function" then
-				-- We've got a frame!
-				Print("|cffffea00<"..a1:GetObjectType()..":"..(a1:GetName() or input.."(anon)").."|r")
-				local sorttable = {}
-				for i in pairs(a1) do table.insert(sorttable, i) end
-				for i in pairs(getmetatable(a1).__index) do table.insert(sorttable, i) end
-				table.sort(sorttable, downcasesort)
-				for _,i in ipairs(sorttable) do
-					local v, output = a1[i]
-					if type(v) == "function" and type(i) == "string" and not blist[i] and (i:find("^Is") or i:find("^Can") or i:find("^Get")) then
-						output = pcallhelper(pcall(v, a1))
-					end
-					if output then Print("    |cff7fd5ff"..tostring(i).."|r => "..output)
-					else Print("    |cff7fd5ff"..tostring(i).."|r = "..pretty_tostring(v)) end
-				end
-				Print("|cffffea00>|r")
-				ShowUIPanel(panel)
-			else
-				-- Normal table
-				Print("|cff9f9f9f{  -- "..input.."|r")
-				local sorttable = {}
-				for i in pairs(a1) do table.insert(sorttable, i) end
-				table.sort(sorttable, downcasesort)
-				for _,i in ipairs(sorttable) do Print("    |cff7fd5ff"..tostring(i).."|r = "..pretty_tostring(a1[i], 1)) end
-				Print("|cff9f9f9f}  -- "..input.."|r")
-				ShowUIPanel(panel)
-			end
-		else Print("|cff999999"..input.."|r => "..pretty_tostring(a1), DEFAULT_CHAT_FRAME) end
-	else
-		Print("|cff999999"..input.."|r => "..string.join(", ", ArgsToString(a1, ...)), DEFAULT_CHAT_FRAME)
-	end
-end
---]]
-
-
---[[
--- Testing code to help find crashes
-TEKX = TEKX or 0
-local blist, input = {GetDisabledFontObject = true, GetHighlightFontObject = true, GetNormalFontObject = true}
-local function downcasesort(a,b) return a and b and tostring(a):lower() < tostring(b):lower() end
-local a1=PlayerFrame
-local sorttable = {}
-for i in pairs(a1) do table.insert(sorttable, i) end
-for i in pairs(getmetatable(a1).__index) do table.insert(sorttable, i) end
-table.sort(sorttable, downcasesort)
-for j,i in ipairs(sorttable) do
-        local v, output = a1[i]
-        if j > TEKX and type(v) == "function" and type(i) == "string" and not blist[i] and i:find("^Get") then
-TEKX = j
-ChatFrame1:AddMessage("Testing "..TEKX.." - "..i)
-                output = pcall(v, a1)
-return
-        end
-end
-ChatFrame1:AddMessage("Done testing")
-]]
