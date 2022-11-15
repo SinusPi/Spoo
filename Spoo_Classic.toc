@@ -1,5 +1,5 @@
 ## Interface: 90100, 20501, 11302
-## Title: Spooooo
+## Title: Spoo
 ## Notes: Shows dumps of nested data structures
 ## Author: Sinus, somewhat basing on Tekkub Stoutwrithe's Spew
 ## Version: 1.0.0.0
