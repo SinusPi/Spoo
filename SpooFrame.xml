@@ -30,9 +30,13 @@
 				<Size x="10" y="13"/>
 				<Anchors><Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.expand" ><Offset x="3" y="0"/></Anchor></Anchors>
 			</Button>
+			<Button parentKey="dump" inherits="UIPanelButtonTemplate">
+				<Size x="10" y="13"/>
+				<Anchors><Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.exec" ><Offset x="3" y="0"/></Anchor></Anchors>
+			</Button>
 			<Frame parentKey="text">
 				<Size x="100" y="13"/>
-				<Anchors><Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.exec" ><Offset x="3" y="0"/></Anchor></Anchors>
+				<Anchors><Anchor point="LEFT" relativePoint="RIGHT" relativeKey="$parent.dump" ><Offset x="3" y="0"/></Anchor></Anchors>
 				<Layers>
 					<Layer level="ARTWORK">
 						<FontString inherits="SpooText" parentKey="text">
@@ -104,6 +108,5 @@
 			<OnDragStart>self:StartMoving();</OnDragStart>
 			<OnDragStop>self:StopMovingOrSizing()</OnDragStop>
 		</Scripts>
-		-->
 	</Frame>
 </Ui>

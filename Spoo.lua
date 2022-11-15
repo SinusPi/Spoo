@@ -156,11 +156,9 @@ function SpooAddon.SpooFrame_Update()
 			end
 			
 			local is_table = type(d.data)=="table"
-			local mt = is_table and getmetatable(d.data)
-			local mtp = d.parent and getmetatable(d.parent)
-			local data_tostring
-			if is_table then data_tostring = d.data.tostring or d.data.__name or (mt and mt.__name)
-			else data_tostring = mtp and mtp.__itemname end
+			local meta = is_table and getmetatable(d.data)
+			local meta_p = d.parent and getmetatable(d.parent)
+			local data_tostring = (is_table and (d.data.tostring or d.data.__name)) or (meta and meta.__name) or (meta_p and meta_p.__itemname)
 			if data_tostring then
 				local ok,txt
 				if type(data_tostring)=="function" then
@@ -171,8 +169,8 @@ function SpooAddon.SpooFrame_Update()
 				if not ok then txt="ERR: "..txt end
 				s = s .. " \"".. tostring(txt) .."\""
 			end
-			if mtp and mtp.__desc and d.index and mtp.__desc[d.index] then
-				s = s .. " ("..mtp.__desc[d.index] ..")"
+			if meta_p and meta_p.__desc and d.index and meta_p.__desc[d.index] then
+				s = s .. " ("..meta_p.__desc[d.index] ..")"
 			elseif SpooAddon.currentMagicDescription and SpooAddon.currentMagicDescription[d.index] and d.indent==0 then
 				s = s .. " ("..SpooAddon.currentMagicDescription[d.index] ..")"
 			end
@@ -194,6 +192,7 @@ function SpooAddon.SpooFrame_Update()
 				linef.expand:SetEnabled(false)
 			end
 			linef.exec:SetText("c")
+			linef.dump:SetText("d")
 
 			if type(d.index)=="table" then
 				linef.expandi:SetAlpha(1)
@@ -208,6 +207,7 @@ function SpooAddon.SpooFrame_Update()
 			linef.expandi:GetSize() -- LEGION TEMP FIX
 
 			linef.exec.object = d.data
+			linef.dump.object = d.data
 
 			linef.indent:SetWidth(d.indent*15+1)
 			linef.linei = offset+i
@@ -293,7 +293,7 @@ function Spoo(insertpoint,indent,data,...)
 					end
 		
 					local size,metasize = tablesize(v)
-					tinsert(tab,{data=vi or v,index=k,meta=true,expand=size and size>0 or metasize,func=(type(v)=="function" and v),size=size,metasize=metasize,indent=indent,typev=typev,size=size,parent=data})
+					tinsert(tab,{data=vi or v,index=k,meta=true,expand=size and size>0 or metasize,func=(type(v)=="function" and v),size=size,metasize=metasize,indent=indent,typev=typev,parent=data})
 				end
 				datatemp = meta.__index
 			else
@@ -345,6 +345,11 @@ function SpooAddon.SpooFrame_Line_OnExec(but)
 	ChatFrame1:AddMessage("|cffeeeeddSaved into |cffffffffSPCOPY|r.|r")
 end
 
+function SpooAddon.SpooFrame_Line_OnDump(but)
+	local object = but.object
+	if ZGV then ZGV:ShowDump(object) end
+end
+
 function SpooAddon:DebugFrame(frame)
 	local ret = {}
 	tinsert(ret,("Frame: %s (%s)"):format(frame:GetName() or "<unnamed>",tostring(frame)))
@@ -374,13 +379,9 @@ end
 
 
 
-function SpooAddon.SpooFrame_ScrollWheel(self,delta,scrollbar)
-	scrollBar = scrollBar or SpooFrameScrollBar
-	if ( delta > 0 ) then
-		scrollBar:SetValue(scrollBar:GetValue() - (scrollBar:GetHeight() / 20), true)
-	else
-		scrollBar:SetValue(scrollBar:GetValue() + (scrollBar:GetHeight() / 20), true)
-	end
+function SpooAddon.SpooFrame_ScrollWheel(self,delta,scrollBar)
+	scrollBar = scrollBar or SpooFrame.scroll.ScrollBar
+	scrollBar:SetValue(scrollBar:GetValue() - delta*(scrollBar:GetHeight() / 20), true)
 end
 
 for i=1,NUMLINES do
@@ -397,6 +398,7 @@ for i=1,NUMLINES do
 	linef.expandi:SetScript("OnClick",SpooAddon.SpooFrame_Line_OnClick)
 	linef.expandi.index=true
 	linef.exec:SetScript("OnClick",SpooAddon.SpooFrame_Line_OnExec)
+	linef.dump:SetScript("OnClick",SpooAddon.SpooFrame_Line_OnDump)
 	linef.i = i
 end
 sf.scroll:SetScript("OnMouseWheel",SpooAddon.SpooFrame_ScrollWheel)
