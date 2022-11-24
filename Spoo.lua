@@ -372,7 +372,13 @@ end
 
 function SpooAddon.SpooFrame_Line_OnDump(but)
 	local object = but.object
-	if ZGV then ZGV:ShowDump(object) end
+	if SpooAddon.dumpFunc then return SpooAddon.dumpFunc(object) end
+	ScriptErrorsFrame:Show()
+	ScriptErrorsFrame:GetEditBox():SetText(tostring(object))
+end
+
+function Spoo_SetDumpFunc(func)
+	SpooAddon.dumpFunc = func
 end
 
 function SpooAddon:DebugFrame(frame)
