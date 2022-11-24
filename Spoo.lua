@@ -132,6 +132,12 @@ function SpooFrame.butHash:Update()
 	self:SetAlpha(SpooCfg.showhash and 1 or 0.5)
 end
 SpooFrame.butHash:Update()
+
+function SpooFrame.butReload:OnClick(but)
+	if SpooAddon.currentTarget then SlashCmdList.SPOO(SpooAddon.currentTarget) end
+end
+SpooFrame.butReload:SetScript("OnClick",SpooFrame.butReload.OnClick)
+
 function SpooAddon.SpooFrame_Update()
 	local offset = FauxScrollFrame_GetOffset(sf.scroll)
 
@@ -432,7 +438,8 @@ SpooAddon.SpooFrame_Update(sf)
 
 SLASH_SPOO1 = "/spoo"
 function SlashCmdList.SPOO(text)
-	input = text:trim():match("^(.-);*$")
+	local input = text:trim():match("^(.-);*$")
+	SpooAddon.currentTarget = input
 	if input == "" then
 		if sf:IsShown() then
 			sf:Hide()

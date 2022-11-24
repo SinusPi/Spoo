@@ -69,6 +69,14 @@
 					<OnLeave>GameTooltip:Hide()</OnLeave>
 				</Scripts>
 			</Button>
+			<Button parentKey="butReload" inherits="UIPanelButtonTemplate" text="R">
+				<Size x="10" y="13"/>
+				<Anchors><Anchor point="RIGHT" relativeKey="$parent.butHash" relativePoint="LEFT"><Offset x="-10" y="0"/></Anchor></Anchors>
+				<Scripts>
+					<OnEnter>ZGV.ChainCall(GameTooltip):SetParent(self,"TOP"):SetText("Refresh"):Show()</OnEnter>
+					<OnLeave>GameTooltip:Hide()</OnLeave>
+				</Scripts>
+			</Button>
 
 			<ScrollFrame parentKey="scroll" inherits="FauxScrollFrameTemplate">
 				<Anchors>
