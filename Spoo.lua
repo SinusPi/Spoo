@@ -98,6 +98,10 @@ local function FormatType(data,t,singlequote_if_string)
 		s = s .. ('%s'):format(tostring(data))
 	elseif t=="nil" then
 		s = s .. ('nil')
+	elseif t=="table" or t=="function" then
+		local str = tostring(data)
+		if not SpooCfg.showhash then str=str:gsub(": [0-9A-F]+","") end
+		s = s .. str
 	else
 		s = s .. ('%s'):format(tostring(data)) --:gsub("%[",""):gsub("%]",""))
 	end
@@ -117,6 +121,17 @@ end
 local __CLASS = {}
 setmetatable(__CLASS,{__mode="k"})
 
+function SpooFrame.butHash:OnClick(but)
+	SpooCfg.showhash = not SpooCfg.showhash
+	self:Update()
+	SpooAddon.SpooFrame_Update()
+end
+SpooFrame.butHash:SetScript("OnClick",SpooFrame.butHash.OnClick)
+SpooFrame.butHash:RegisterForClicks("LeftButtonUp")
+function SpooFrame.butHash:Update()
+	self:SetAlpha(SpooCfg.showhash and 1 or 0.5)
+end
+SpooFrame.butHash:Update()
 function SpooAddon.SpooFrame_Update()
 	local offset = FauxScrollFrame_GetOffset(sf.scroll)
 
@@ -132,13 +147,13 @@ function SpooAddon.SpooFrame_Update()
 			if d.index then
 				if d.meta then
 					if d.typev=="function" or type(d.data)=="function" then
-						s = "(m) |cff88ff00"..tostring(d.index).."|cff44aa00()|r = "..s
+						s = "(m) |cff88ff00"..tostring(d.index).."|cff44aa00()|r" .. (SpooCfg.showhash and " = "..s or "")
 					else
-						s = "(m) |cff888888["..FormatType(d.index,nil,true).."|cff888888]|r = "..s
+						s = "(m) |cff888888["..FormatType(d.index,nil,true).."|cff888888]|r = " ..s
 					end
 				else
 					if d.typev=="function" or type(d.data)=="function" then
-						s = "|cff88ff00"..tostring(d.index).."|cff44aa00()|r = "..s
+						s = "|cff88ff00"..tostring(d.index).."|cff44aa00()|r" .. (SpooCfg.showhash and " = "..s or "")
 					else
 						if type(d.index)~="string" or not safe_word(d.index) then
 							s = "|cff888888["..FormatType(d.index,nil,true).."|cff888888]|r = "..s

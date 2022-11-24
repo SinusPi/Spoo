@@ -58,8 +58,16 @@
 			<KeyValue key="backdropColorAlpha" value="0.9" type="number"/>
 		</KeyValues>
 		<Frames>
-			<Button name="$parent_CloseButton" inherits="UIPanelCloseButton">
+			<Button parentKey="butClose" inherits="UIPanelCloseButton">
 				<Anchors><Anchor point="TOPRIGHT" relativePoint="TOPRIGHT"><Offset x="10" y="7"/></Anchor></Anchors>
+			</Button>
+			<Button parentKey="butHash" inherits="UIPanelButtonTemplate" text="#">
+				<Size x="10" y="13"/>
+				<Anchors><Anchor point="RIGHT" relativeKey="$parent.butClose" relativePoint="LEFT"><Offset x="-10" y="0"/></Anchor></Anchors>
+				<Scripts>
+					<OnEnter>ZGV.ChainCall(GameTooltip):SetParent(self,"TOP"):SetText("Toggle hashes"):Show()</OnEnter>
+					<OnLeave>GameTooltip:Hide()</OnLeave>
+				</Scripts>
 			</Button>
 
 			<ScrollFrame parentKey="scroll" inherits="FauxScrollFrameTemplate">
