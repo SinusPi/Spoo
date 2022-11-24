@@ -44,6 +44,8 @@ sf.lineframes = {}
 sf.lines = {}
 local lines=sf.lines
 
+SpooCfg = SpooCfg or {}
+
 local TABLEITEMS, TABLEDEPTH = 5, 1
 local tostring=tostring
 local TableToString

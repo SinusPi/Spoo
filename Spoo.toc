@@ -5,6 +5,7 @@
 ## Version: 1.0.1.0
 ## X-Category: Development Tools
 ## X-LoadOn-Slash: /spoo
+## SavedVariables: SpooCfg
 
 LibStub.lua
 
