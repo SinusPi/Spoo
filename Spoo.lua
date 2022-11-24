@@ -34,7 +34,9 @@ local name,SpooAddon = ...
 
 -- Add more magic table field descriptions here. These are used if you /spoo FunctionName(...) .
 SpooAddon.MagicDescriptions = {
-	GetItemInfo= {__totable=true, 'itemName', 'itemLink', 'itemRarity', 'itemLevel', 'itemMinLevel', 'itemType', 'itemSubType', 'stackable', 'inventoryType', 'itemIcon', 'sellPrice', 'itemClassID', 'itemSubClassID', 'bindType', 'expacID', 'itemSetID', 'isCraftingReagent'}
+	GetItemInfo= {__totable=true, 'itemName', 'itemLink', 'itemRarity', 'itemLevel', 'itemMinLevel', 'itemType', 'itemSubType', 'stackable', 'inventoryType', 'itemIcon', 'sellPrice', 'itemClassID', 'itemSubClassID', 'bindType', 'expacID', 'itemSetID', 'isCraftingReagent'},
+	GetFactionInfo= {__totable=true, 'name', 'description', 'standingID', 'barMin', 'barMax', 'barValue', 'atWarWith', 'canToggleAtWar', 'isHeader', 'isCollapsed', 'hasRep', 'isWatched', 'isChild', 'factionID', 'hasBonusRepGain', 'canSetInactive'},
+	GetFactionInfoByID= {__totable=true, 'name', 'description', 'standingID', 'barMin', 'barMax', 'barValue', 'atWarWith', 'canToggleAtWar', 'isHeader', 'isCollapsed', 'hasRep', 'isWatched', 'isChild', 'factionID', 'hasBonusRepGain', 'canSetInactive'},
 }
 
 local sf = SpooFrame
