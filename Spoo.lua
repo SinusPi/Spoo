@@ -31,6 +31,8 @@ You can combine these features, too.
 --]]
 
 local name,SpooAddon = ...
+SpooAddon.name = name
+_G['SpooAddon']=SpooAddon
 
 -- Add more magic table field descriptions here. These are used if you /spoo FunctionName(...) .
 SpooAddon.MagicDescriptions = {
@@ -43,8 +45,7 @@ local sf = SpooFrame
 sf.lineframes = {}
 sf.lines = {}
 local lines=sf.lines
-
-SpooCfg = SpooCfg or {}
+SpooAddon.Frame = sf
 
 local TABLEITEMS, TABLEDEPTH = 5, 1
 local tostring=tostring
@@ -243,6 +244,9 @@ function SpooAddon.SpooFrame_Update()
 	end
 	--FauxScrollFrame_Update(SpooFrameScrollFrame, #lines, NUMLINES, (#lines-NUMLINES)/20)
 	FauxScrollFrame_Update(sf.scroll, #lines, NUMLINES, 3.1)
+
+	SpooFrame.butHash:Update()
+	SpooFrame.butCall:Update()
 end
 
 --[[
@@ -438,8 +442,6 @@ sf.scroll:SetScript("OnShow",SpooAddon.SpooFrame_Update)
 sf.scroll:SetScript("OnVerticalScroll",function(self,offset) FauxScrollFrame_OnVerticalScroll(self, offset, 3, SpooAddon.SpooFrame_Update) end)
 
 
-SpooAddon.SpooFrame_Update(sf)
-
 
 
 SLASH_SPOO1 = "/spoo"
@@ -555,11 +557,23 @@ local function SetupAutoCompletion()
 	end)
 end
 
+SpooAddon.ControlFrame = CreateFrame("FRAME")
+local SACF = SpooAddon.ControlFrame
+function SACF:OnEvent(ev,arg)
+	SpooAddon.lastev = {ev,arg}
+	if ev=="ADDON_LOADED" and arg==SpooAddon.name then
+		SpooAddon:InitCfg()
+		SetupAutoCompletion()
+		SACF:UnregisterEvent("ADDON_LOADED")
+	end
+end
+SACF:Show()
+SACF:SetScript("OnEvent",SACF.OnEvent)
+SACF:RegisterEvent("ADDON_LOADED")
 
-
-local F=CreateFrame("FRAME","SpooAutocompleteFrame")
-F:RegisterEvent("ADDON_LOADED")
-F:SetScript("OnEvent",function(self,event)
-	SetupAutoCompletion()
-	self:SetScript("OnEvent",nil)
-end)
+function SpooAddon:InitCfg()
+	SpooCfg = SpooCfg or {}
+	self.cfg = SpooCfg
+	if type(self.cfg.callGetters~="boolean") then self.cfg.callGetters=true end
+	if type(self.cfg.showhash~="boolean") then self.cfg.showhash=false end
+end
