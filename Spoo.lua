@@ -132,7 +132,17 @@ SpooFrame.butHash:RegisterForClicks("LeftButtonUp")
 function SpooFrame.butHash:Update()
 	self:SetAlpha(SpooCfg.showhash and 1 or 0.5)
 end
-SpooFrame.butHash:Update()
+
+function SpooFrame.butCall:OnClick(but)
+	SpooCfg.callGetters = not SpooCfg.callGetters
+	self:Update()
+	SpooAddon.SpooFrame_Update()
+end
+SpooFrame.butCall:SetScript("OnClick",SpooFrame.butCall.OnClick)
+SpooFrame.butCall:RegisterForClicks("LeftButtonUp")
+function SpooFrame.butCall:Update()
+	self:SetAlpha(SpooCfg.callGetters and 1 or 0.5)
+end
 
 function SpooFrame.butReload:OnClick(but)
 	if SpooAddon.currentTarget then SlashCmdList.SPOO(SpooAddon.currentTarget) end
