@@ -99,7 +99,7 @@ local function FormatType(data,t,singlequote_if_string)
 		s = s .. ('%s'):format(tostring(data))
 	elseif t=="nil" then
 		s = s .. ('nil')
-	elseif t=="table" or t=="function" then
+	elseif t=="table" or t=="function" or t=="userdata" then
 		local str = tostring(data)
 		if not SpooCfg.showhash then str=str:gsub(": [0-9A-F]+","") end
 		s = s .. str
@@ -152,6 +152,11 @@ SpooFrame.butReload:SetScript("OnClick",SpooFrame.butReload.OnClick)
 function SpooAddon.SpooFrame_Update()
 	local offset = FauxScrollFrame_GetOffset(sf.scroll)
 
+	local function col_gray(s) return "|cff888888"..s.."|r" end
+	local function brace(s) return "["..s.."]" end
+	local function col_func(s) return "|c".."ff88ff88"..s.."|r" end
+	local function col_funcb() return "|c".."FF6A866A".."()|r" end
+
 	for i=1,NUMLINES do
 		local linef=sf.lineframes[i]
 		if offset+i<=#lines then
@@ -160,28 +165,39 @@ function SpooAddon.SpooFrame_Update()
 
 			linef.d = d
 			
-			s = FormatType(d.data)
-			if d.index then
-				if d.meta then
-					if d.typev=="function" or type(d.data)=="function" then
-						s = "(m) |cff88ff00"..tostring(d.index).."|cff44aa00()|r" .. (SpooCfg.showhash and " = "..s or "")
+			local s = ""
+			if d.index then -- it's a field
+				if d.is_meta then s = "(m) " end
+
+				-- key name
+				if d.is_func then
+					local index = d.index
+					if type(index)=="number" then index=col_gray(brace(col_func(index)))
+					elseif type(index)=="string" and not safe_word(index) then index=col_gray(brace(FormatType(d.index,nil,true)))
+					end
+					s = s .. col_func(tostring(index))..col_funcb() -- func name
+				elseif type(d.index)~="string" or not safe_word(d.index) then
+					s = s .. col_gray(brace(FormatType(d.index,nil,true)))
+				else
+					s = s .. FormatType(d.index,nil,true)
+				end
+
+				if d.is_func then
+					if SpooAddon.cfg.callGetters and d.func_called then
+						s = s .. " = " .. FormatType(d.func_result)
+					elseif SpooAddon.cfg.showhash then
+						s = s .. " = " .. FormatType(d.data)
 					else
-						s = "(m) |cff888888["..FormatType(d.index,nil,true).."|cff888888]|r = " ..s
+						-- just stop at func()
+					end
+				elseif type(d.data)=="table" then
+					s = s .. " = " .. FormatType(d.data)
+					if d.size or d.metasize then
+						s = s .. " |cff886600[|cffbb9900"..d.size.. (d.metasize and "+"..d.metasize or "") .."|r]|r"
 					end
 				else
-					if d.typev=="function" or type(d.data)=="function" then
-						s = "|cff88ff00"..tostring(d.index).."|cff44aa00()|r" .. (SpooCfg.showhash and " = "..s or "")
-					else
-						if type(d.index)~="string" or not safe_word(d.index) then
-							s = "|cff888888["..FormatType(d.index,nil,true).."|cff888888]|r = "..s
-						else
-							s = FormatType(d.index,nil,true).."|r = "..s
-						end
-					end
+					s = s .. " = " .. FormatType(d.data)
 				end
-			end
-			if d.size or d.metasize then
-				s = s .. " |cff886600[|cffbb9900"..d.size.. (d.metasize and ","..d.metasize or "") .."|cff886600]"
 			end
 
 			if __CLASS and __CLASS[d.data] then s =s .. " {"..__CLASS[d.data].."}" end
@@ -219,7 +235,7 @@ function SpooAddon.SpooFrame_Update()
 				linef.expand:SetAlpha(1)
 				linef.expand:SetEnabled(true)
 				if d.expanded then linef.expand:SetText("-") else linef.expand:SetText("+") end
-			elseif d.func or (d.meta and typev=="function") then
+			elseif d.is_func then
 				linef.expand:SetAlpha(1)
 				linef.expand:SetEnabled(true)
 				linef.expand:SetText(":")
@@ -286,7 +302,7 @@ local function downcasesort(a,b)
 end
 
 local function tablesize(tab)
-	local size,metasize=0
+	local size,metasize=0,nil
 	if type(tab)~="table" then return end
 	for k,v in pairs(tab) do size=size+1 end
 	repeat
@@ -305,7 +321,7 @@ end
 function Spoo(insertpoint,indent,data,...)
 	if indent==nil and data==nil then insertpoint,indent,data=nil,nil,insertpoint end
    
-	if not insertpoint then lines={} insertpoint=1 end
+	if not insertpoint then table.wipe(lines) insertpoint=1 end
 	if not indent then indent=1 end
 	local s,expand
 	local added=0
@@ -314,25 +330,36 @@ function Spoo(insertpoint,indent,data,...)
 		if not next(data) then data={"--EMPTY TABLE--"} end
 		for k,v in pairs(data) do
 			local size,metasize = tablesize(v)
-			tinsert(tab,{data=v,index=k,expand=size and size>0 or metasize,func=(type(v)=="function"),size=size,metasize=metasize,indent=indent,parent=data})
+			tinsert(tab,{index=k,data=v,expand=size and size>0 or metasize,is_func=(type(v)=="function"),size=size,metasize=metasize,indent=indent,parent=data})
 		end
 		local datatemp=data
 		repeat
 			local meta = getmetatable(datatemp)
 			if meta and type(meta.__index)=="table" then
 				for k,v in pairs(meta.__index) do
-					local typev=type(v)
-					local vi
+					local func_result
+					local func_called
 					if type(v) == "function" then
-						if (type(k) == "string" and not blacklist[k] and (k:find("^Is") or k:find("^Can") or k:find("^Get"))) and not IsControlKeyDown() then
-							vi = pcallhelper(pcall(v,data))
-						else
-							vi = "(function)"
+						if (type(k) == "string" and not blacklist[k] and (k:find("^Is[A-Z]") or k:find("^Can[A-Z]") or k:find("^Get[A-Z]") or k:find("^Does[A-Z]") or k:find("^Has[A-Z]"))) and not IsControlKeyDown() and SpooCfg.callGetters then
+							func_result = pcallhelper(pcall(v,data))
+							func_called = true
 						end
 					end
 		
 					local size,metasize = tablesize(v)
-					tinsert(tab,{data=vi or v,index=k,meta=true,expand=size and size>0 or metasize,func=(type(v)=="function" and v),size=size,metasize=metasize,indent=indent,typev=typev,parent=data})
+					tinsert(tab,{
+						index=k,
+						data=v,
+						is_meta=true,
+						func_called=func_called,
+						func_result=func_result,
+						is_func=(type(v)=="function"),
+						expand=size and size>0 or metasize,
+						size=size,
+						metasize=metasize,
+						indent=indent,
+						parent=data
+					})
 				end
 				datatemp = meta.__index
 			else
@@ -359,21 +386,21 @@ end
 
 function SpooAddon.SpooFrame_Line_OnClick(but)
 	local linei=but:GetParent().linei
-	local data = lines[linei]
-	local func = data[but.index and "index" or "data"]
+	local line = lines[linei]
+	local func = line[but.index and "index" or "data"]
 	local expindexi = but.index and "expandedi" or "expanded"
 	local result
 	if func and type(func)=="function" then
-		result = func(data.parent)
-	elseif lines[linei].func and type(lines[linei].func)=="function" then
-		result = lines[linei].func(data.parent)
+		result = func(line.parent)
+	elseif line.is_func then
+		result = line.data(line.parent)
 	end
-	if not data[expindexi] then
-		data[expindexi]=true
-		Spoo(linei+1,data.indent+1,result or (but.index and data.index or data.data))
+	if not line[expindexi] then
+		line[expindexi]=true
+		Spoo(linei+1,line.indent+1,result or (but.index and line.index or line.data))
 	else
-		while lines[linei+1] and lines[linei+1].indent>data.indent do tremove(lines,linei+1) end
-		data[expindexi]=nil
+		while lines[linei+1] and lines[linei+1].indent>line.indent do tremove(lines,linei+1) end
+		line[expindexi]=nil
 		SpooAddon.SpooFrame_Update()
 	end
 end
