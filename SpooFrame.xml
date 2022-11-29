@@ -77,9 +77,17 @@
 					<OnLeave>GameTooltip:Hide()</OnLeave>
 				</Scripts>
 			</Button>
-			<Button parentKey="butReload" inherits="UIPanelButtonTemplate" text="R">
+			<Button parentKey="butFuncfirst" inherits="UIPanelButtonTemplate" text="F^">
 				<Size x="10" y="13"/>
 				<Anchors><Anchor point="RIGHT" relativeKey="$parent.butCall" relativePoint="LEFT"><Offset x="-10" y="0"/></Anchor></Anchors>
+				<Scripts>
+					<OnEnter>ZGV.ChainCall(GameTooltip):SetOwner(self,"ANCHOR_TOP"):ClearLines():AddLine("Functions first"):Show()</OnEnter>
+					<OnLeave>GameTooltip:Hide()</OnLeave>
+				</Scripts>
+			</Button>
+			<Button parentKey="butReload" inherits="UIPanelButtonTemplate" text="R">
+				<Size x="10" y="13"/>
+				<Anchors><Anchor point="RIGHT" relativeKey="$parent.butFuncfirst" relativePoint="LEFT"><Offset x="-10" y="0"/></Anchor></Anchors>
 				<Scripts>
 					<OnEnter>ZGV.ChainCall(GameTooltip):SetOwner(self,"ANCHOR_TOP"):ClearLines():AddLine("Refresh"):Show()</OnEnter>
 					<OnLeave>GameTooltip:Hide()</OnLeave>

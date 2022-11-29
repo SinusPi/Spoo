@@ -122,32 +122,35 @@ end
 local __CLASS = {}
 setmetatable(__CLASS,{__mode="k"})
 
-function SpooFrame.butHash:OnClick(but)
-	SpooCfg.showhash = not SpooCfg.showhash
-	self:Update()
-	SpooAddon.SpooFrame_Update()
-end
-SpooFrame.butHash:SetScript("OnClick",SpooFrame.butHash.OnClick)
-SpooFrame.butHash:RegisterForClicks("LeftButtonUp")
-function SpooFrame.butHash:Update()
-	self:SetAlpha(SpooCfg.showhash and 1 or 0.5)
+
+
+local function MakeToggleButton(name,opt)
+	local But=SpooFrame[name]
+	But.OnClick = function(self,but)
+		SpooAddon.cfg[opt] = not SpooAddon.cfg[opt]
+		self:Update()
+		SpooAddon.SpooFrame_Update()
+		if self.OnClickExtra then self:OnClickExtra() end
+	end
+	But:SetScript("OnClick",But.OnClick)
+	But:RegisterForClicks("LeftButtonUp")
+	But.Update = function(self) 
+		self:SetAlpha(SpooAddon.cfg[opt] and 1 or 0.5)
+	end
 end
 
-function SpooFrame.butCall:OnClick(but)
-	SpooCfg.callGetters = not SpooCfg.callGetters
-	self:Update()
-	SpooAddon.SpooFrame_Update()
-end
-SpooFrame.butCall:SetScript("OnClick",SpooFrame.butCall.OnClick)
-SpooFrame.butCall:RegisterForClicks("LeftButtonUp")
-function SpooFrame.butCall:Update()
-	self:SetAlpha(SpooCfg.callGetters and 1 or 0.5)
-end
+MakeToggleButton("butHash","showhash")
+MakeToggleButton("butCall","callGetters")
+MakeToggleButton("butFuncfirst","sortFuncFirst")
+sf.butFuncfirst.OnClickExtra = function(self) sf.butReload:OnClick() end
 
-function SpooFrame.butReload:OnClick(but)
+local But=SpooFrame.butReload
+function But:OnClick(but)
 	if SpooAddon.currentTarget then SlashCmdList.SPOO(SpooAddon.currentTarget) end
 end
-SpooFrame.butReload:SetScript("OnClick",SpooFrame.butReload.OnClick)
+But:SetScript("OnClick",But.OnClick)
+
+
 
 function SpooAddon.SpooFrame_Update()
 	local offset = FauxScrollFrame_GetOffset(sf.scroll)
@@ -273,6 +276,7 @@ function SpooAddon.SpooFrame_Update()
 
 	SpooFrame.butHash:Update()
 	SpooFrame.butCall:Update()
+	SpooFrame.butFuncfirst:Update()
 end
 
 --[[
@@ -295,6 +299,9 @@ end
 local blacklist = {GetDisabledFontObject = true, GetHighlightFontObject = true, GetNormalFontObject = true}
 local function pcallhelper(success, ...) if success then if select('#',...)<=1 then return ... else return {...} end end end
 local function downcasesort(a,b)
+	if SpooAddon.cfg.sortFuncFirst then
+		if a.is_func~=b.is_func then return a.is_func end
+	end
 	if type(a.index)=="number" and type(b.index)=="number" then return a.index<b.index end
 	if type(a.index)=="number" and type(b.index)~="number" then return true end
 	if type(a.index)~="number" and type(b.index)=="number" then return false end
@@ -319,6 +326,7 @@ local function tablesize(tab)
 end
 
 function Spoo(insertpoint,indent,data,...)
+	if indent==nil then SpooAddon.lastData = data end
 	if indent==nil and data==nil then insertpoint,indent,data=nil,nil,insertpoint end
    
 	if not insertpoint then table.wipe(lines) insertpoint=1 end
