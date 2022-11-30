@@ -1,4 +1,4 @@
-## Interface: 100000, 100002, 90100, 11401
+## Interface: 100002, 90100, 11403
 ## Title: Spoo
 ## Notes: Shows dumps of nested data structures
 ## Author: Sinus, somewhat basing on Tekkub Stoutwrithe's Spew
