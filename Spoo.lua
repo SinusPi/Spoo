@@ -70,24 +70,21 @@ for _, v in ipairs ({
     "repeat", "return", "then", "true", "until", "while"
 }) do lua_reserved_words [v] = true end
 local function safe_word(s)
-	return not lua_reserved_words[s] and s:match("^%a[%a%d_]*$")
+	return not lua_reserved_words[s] and s:match("^[%a_][%a%d_]*$")
 end
 
 
-local function FormatType(data,t,singlequote_if_string)
+local function FormatType(data,t,singlequote_if_string,ignore_safety)
 	local s=""
 	t = t or type(data)
 
-	local ct = t
-	if t=="string" and singlequote_if_string then ct = "qstring" end
-	if t=="boolean" then ct = 'bool_'..tostring(data) end
-	if colors[ct] then s = s .. colors[ct] end
+	local objtype = t=="table" and type(rawget(data,0))=="userdata" and type(data.GetObjectType)=="function" and data:GetObjectType()
 
 	if t=="string" then
 		data=data:gsub("\n","\\n") :gsub("\r","") :gsub("|n","\124n") :gsub("\t","\\t")
 		data=data:sub(1,500)
 		if singlequote_if_string then
-			if safe_word(data) then
+			if safe_word(data) or ignore_safety then
 				s = s .. ("%s"):format(data)
 			else
 				s = s .. ("'%s'"):format(data)
@@ -99,23 +96,23 @@ local function FormatType(data,t,singlequote_if_string)
 		s = s .. ('%s'):format(tostring(data))
 	elseif t=="nil" then
 		s = s .. ('nil')
-	elseif t=="table" or t=="function" or t=="userdata" then
+	elseif objtype then
+		local objname = type(data.GetName)=="function" and data:GetName() ---@type string|false
+		objname = objname and " \""..tostring(objname).."\"" or " (anon)"
+		s = s .. ("|c".."ffff00dd<|cFFFF5DE9%s|r %s>|r"):format(objtype,objname)
+	elseif t=="table" or t=="function" or t=="userdata" then -- remove hashes from those, if present
 		local str = tostring(data)
 		if not SpooCfg.showhash then str=str:gsub(": [0-9A-F]+","") end
 		s = s .. str
 	else
 		s = s .. ('%s'):format(tostring(data)) --:gsub("%[",""):gsub("%]",""))
 	end
-	if colors[ct] then s = s .. "|r" end
+	
+	local ct = t
+	if t=="string" and singlequote_if_string then ct = "qstring" end
+	if t=="boolean" then ct = 'bool_'..tostring(data) end
+	if colors[ct] then s = colors[ct] .. s .. "|r" end
 
-	local extra
-	local objtype = t=="table" and type(data.GetObjectType)=="function" and data:GetObjectType()
-	if objtype then
-		-- widget!
-		local objname = t=="table" and type(data.GetName)=="function" and data:GetName()
-		objname = objname and " \""..tostring(objname).."\"" or " (anon)"
-		s = s .. " <"..tostring(data:GetObjectType()).. tostring(objname) .. ">"
-	end
 	return s
 end
 
@@ -180,9 +177,9 @@ function SpooAddon.SpooFrame_Update()
 					end
 					s = s .. col_func(tostring(index))..col_funcb() -- func name
 				elseif type(d.index)~="string" or not safe_word(d.index) then
-					s = s .. col_gray(brace(FormatType(d.index,nil,true)))
+					s = s .. FormatType(d.index,nil,true,true) --col_gray(brace(FormatType(d.index,nil,true)))
 				else
-					s = s .. FormatType(d.index,nil,true)
+					s = s .. FormatType(d.index,nil,true,true)
 				end
 
 				if d.is_func then
