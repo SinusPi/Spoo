@@ -25,7 +25,7 @@ For that, set a `__desc` metatable field to a table with a description of the fi
 
 You can combine these features, too.
 /run family={ {name="Claire",age=41}, {name="Doug",age=38}, {name="Bob",age="12"}, {name="Alice",age="9"} }
-/run name_age=function(t) return t.name.." ("..t.age..")" end  ;  family_desc={[1]="mother",[2]="father",[3]="son",[4]="daughter"}  ;  setmetatable(family,{__itemname=name_age,__desc=family_desc})
+/run name_age=function(t) return t.name.." ("..t.age..")" end  ;  family_desc={"mother","father","son","daughter"}  ;  setmetatable(family,{__itemname=name_age,__desc=family_desc})
 /run Spoo(family)
 
 --]]
@@ -39,6 +39,9 @@ SpooAddon.MagicDescriptions = {
 	GetItemInfo= {__totable=true, 'itemName', 'itemLink', 'itemRarity', 'itemLevel', 'itemMinLevel', 'itemType', 'itemSubType', 'stackable', 'inventoryType', 'itemIcon', 'sellPrice', 'itemClassID', 'itemSubClassID', 'bindType', 'expacID', 'itemSetID', 'isCraftingReagent'},
 	GetFactionInfo= {__totable=true, 'name', 'description', 'standingID', 'barMin', 'barMax', 'barValue', 'atWarWith', 'canToggleAtWar', 'isHeader', 'isCollapsed', 'hasRep', 'isWatched', 'isChild', 'factionID', 'hasBonusRepGain', 'canSetInactive'},
 	GetFactionInfoByID= {__totable=true, 'name', 'description', 'standingID', 'barMin', 'barMax', 'barValue', 'atWarWith', 'canToggleAtWar', 'isHeader', 'isCollapsed', 'hasRep', 'isWatched', 'isChild', 'factionID', 'hasBonusRepGain', 'canSetInactive'},
+}
+SpooAddon.MagicByContent = {
+	[{'isMapLayerTransition','name','nodeID'}] = { __name = function(v) return v.nodeID..": "..v.name.." ("..v.state..")" end}
 }
 
 local sf = SpooFrame
@@ -157,10 +160,10 @@ function SpooAddon.SpooFrame_Update()
 	local function col_func(s) return "|c".."ff88ff88"..s.."|r" end
 	local function col_funcb() return "|c".."FF6A866A".."()|r" end
 
+	local fake_index={}
 	for i=1,NUMLINES do
 		local linef=sf.lineframes[i]
 		if offset+i<=#lines then
-			local s
 			local d = lines[offset+i]
 
 			linef.d = d
@@ -198,6 +201,9 @@ function SpooAddon.SpooFrame_Update()
 				else
 					s = s .. " = " .. FormatType(d.data)
 				end
+			else
+				fake_index[d.indent] = (fake_index[d.indent] or 0) + 1  -- NOT bloody likely to be a non-indexed item at indent>0, but hey.
+				s = col_gray("#")..colors.number..fake_index[d.indent].."|r" .. " = " .. s .. FormatType(d.data)
 			end
 
 			if __CLASS and __CLASS[d.data] then s =s .. " {"..__CLASS[d.data].."}" end
@@ -210,11 +216,21 @@ function SpooAddon.SpooFrame_Update()
 			local is_table = type(d.data)=="table"
 			local meta = is_table and getmetatable(d.data)
 			local meta_p = d.parent and getmetatable(d.parent)
+			if is_table then
+				for keys,magic in pairs(SpooAddon.MagicByContent) do
+					local match=true
+					for _,k in ipairs(keys) do
+						if not d.data or d.data[k]==nil then match=false break end
+					end
+					if match then print("magic match") end
+					if match then meta=magic end
+				end
+			end
 			local data_tostring = (is_table and (d.data.tostring or d.data.__name)) or (meta and meta.__name) or (meta_p and meta_p.__itemname)
 			if data_tostring then
 				local ok,txt
 				if type(data_tostring)=="function" then
-					ok,txt = pcall(data_tostring,d.data,d.parent,d.index)
+					ok,txt = pcall(data_tostring,d.data)--,d.parent,d.index)  -- somehow adding d.parent and d.index here causes MASSIVE lag on some LibRover nodes like taxis ~sinus 2023-11-02
 				else
 					ok,txt = true,data_tostring
 				end
@@ -384,6 +400,7 @@ function Spoo(insertpoint,indent,data,...)
 	if select("#",...)>0 then
 		Spoo(insertpoint,indent,...)
 	else
+		if not sf:IsShown() then sf.zoomin:Play() end
 		sf:Show()
 		SpooAddon.SpooFrame_Update()
 	end

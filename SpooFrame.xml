@@ -140,5 +140,19 @@
 			<OnDragStart>self:StartMoving();</OnDragStart>
 			<OnDragStop>self:StopMovingOrSizing()</OnDragStop>
 		</Scripts>
+		<Animations>
+			<AnimationGroup parentKey="zoomin">
+				<Animation order="1" duration=".1">
+					<Scripts>
+						<OnUpdate>
+							local prog = self:GetSmoothProgress()
+							local parent = self:GetTarget()
+							parent:SetAlpha(prog)
+							parent:SetScale(0.95+prog*0.05)
+						</OnUpdate>
+					</Scripts>
+				</Animation>
+			</AnimationGroup>
+		</Animations>
 	</Frame>
 </Ui>
