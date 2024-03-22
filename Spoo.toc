@@ -1,8 +1,9 @@
-## Interface: 100002, 90100, 11403
+## Interface: 100205, 90100, 11403
 ## Title: Spoo
 ## Notes: Shows dumps of nested data structures
-## Author: Sinus, somewhat basing on Tekkub Stoutwrithe's Spew
-## Version: 1.0.1.0
+## Author: sinus@sinpi.net
+## X-BasedOn: Tekkub Stoutwrithe's Spew
+## Version: 1.0.2
 ## X-Category: Development Tools
 ## X-LoadOn-Slash: /spoo
 ## SavedVariables: SpooCfg
