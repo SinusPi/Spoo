@@ -26,8 +26,10 @@ jobs:
         addon_name=$(ls *.toc)
         addon_name=$(basename $addon_name .toc)
         tag_name=${addon_name}-${{github.event.inputs.version}}
+        echo "{addon_name}={${addon_name}}"
         echo "{addon_name}={${addon_name}}" >>"$GITHUB_OUTPUT"
-        echo "{tag_name}={${tag_name}}" >>"$GITHUB_OUTPUT"
+        echo "{tag_name}={${tag_name}}"
+        echo "{tag_name}={${tag_name}}" >> "$GITHUB_OUTPUT"
 
     - name: Make folder for zips
       run: |
